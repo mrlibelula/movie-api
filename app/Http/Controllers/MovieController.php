@@ -18,42 +18,19 @@ class MovieController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validatedData = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'release_date' => 'required|date',
-            'genre' => 'required|string|max:100',
+            'genre_id' => 'required|exists:genres,id',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
+        $movie = Movie::create($validatedData);
 
-        try {
-            $movie = Movie::create($validator->validated());
-            return response()->json($movie, 201);
-        } catch (QueryException $e) {
-            // Check if the error is due to a unique constraint violation
-            if ($e->errorInfo[1] == 19) { // SQLite error code for unique constraint violation
-                $errorMessage = sprintf(
-                    "A movie with this title '%s' and release date '%s' already exists.",
-                    $request->input('title'),
-                    $request->input('release_date')
-                );
-                return response()->json([
-                    'message' => 'Movie already exists',
-                    'errors' => [
-                        'title' => [$errorMessage]
-                    ]
-                ], 409); // 409 Conflict
-            }
-            
-            // For other database errors
-            return response()->json([
-                'message' => 'An error occurred while saving the movie.',
-                'errors' => ['database' => [$e->getMessage()]]
-            ], 500);
-        }
+        return response()->json([
+            'message' => "The movie \"{$movie->title}\" has been created.",
+            'movie' => $movie
+        ], 201);
     }
 
     public function show($id)
@@ -118,68 +95,42 @@ class MovieController extends Controller
 
     public function addToWatchLater(Movie $movie)
     {
-        try {
-            $user = auth()->user();
-            
-            // Check if the movie is already in the watch later list
-            if ($user->watchLater()->where('movie_id', $movie->id)->exists()) {
-                return response()->json([
-                    'message' => "The movie '{$movie->title}' is already in your watch later list."
-                ], 409); // 409 Conflict
-            }
-
-            $user->watchLater()->attach($movie->id);
-            
+        $user = auth()->user();
+        
+        if ($user->watchLater()->where('movie_id', $movie->id)->exists()) {
             return response()->json([
-                'message' => "The movie '{$movie->title}' has been added to your watch later list."
-            ], 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Movie not found.',
-                'error' => "The movie with ID {$movie->id} does not exist."
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while adding the movie to your watch later list.',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => "The movie \"{$movie->title}\" is already in your watch later list."
+            ], 409);
         }
+
+        $user->watchLater()->attach($movie->id);
+        
+        return response()->json([
+            'message' => "The movie \"{$movie->title}\" has been added to your watch later list."
+        ], 200);
     }
 
     public function removeFromWatchLater(Movie $movie)
     {
-        try {
-            $user = auth()->user();
-            
-            // Check if the movie is in the watch later list
-            if (!$user->watchLater()->where('movie_id', $movie->id)->exists()) {
-                return response()->json([
-                    'message' => "The movie '{$movie->title}' is not in your watch later list."
-                ], 404);
-            }
-
-            $user->watchLater()->detach($movie->id);
-            
+        $user = auth()->user();
+        
+        if (!$user->watchLater()->where('movie_id', $movie->id)->exists()) {
             return response()->json([
-                'message' => "The movie '{$movie->title}' has been removed from your watch later list."
-            ], 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Movie not found.',
-                'error' => "The movie with ID {$movie->id} does not exist."
+                'message' => "The movie \"{$movie->title}\" is not in your watch later list."
             ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'An error occurred while removing the movie from your watch later list.',
-                'error' => $e->getMessage()
-            ], 500);
         }
+
+        $user->watchLater()->detach($movie->id);
+        
+        return response()->json([
+            'message' => "The movie \"{$movie->title}\" has been removed from your watch later list."
+        ], 200);
     }
 
     public function getWatchLaterList()
     {
         $user = auth()->user();
-        $watchLaterMovies = $user->watchLater->makeHidden('pivot');
+        $watchLaterMovies = $user->watchLater()->with('genre')->get();
 
         return response()->json([
             'message' => 'Watch later list retrieved successfully',
@@ -191,9 +142,20 @@ class MovieController extends Controller
                 ],
                 'watch_later' => [
                     'count' => $watchLaterMovies->count(),
-                    'movies' => $watchLaterMovies
-                ]
-            ]
+                    'movies' => $watchLaterMovies->map(function ($movie) {
+                        return [
+                            'id' => $movie->id,
+                            'title' => $movie->title,
+                            'description' => $movie->description,
+                            'release_date' => $movie->release_date,
+                            'genre' => [
+                                'id' => $movie->genre->id,
+                                'name' => $movie->genre->name,
+                            ],
+                        ];
+                    }),
+                ],
+            ],
         ], 200);
     }
 }

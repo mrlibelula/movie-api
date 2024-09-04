@@ -48,6 +48,6 @@ class User extends Authenticatable
 
     public function watchLater()
     {
-        return $this->belongsToMany(Movie::class, 'watch_later');
+        return $this->belongsToMany(Movie::class, 'movie_user')->withTimestamps();
     }
 }

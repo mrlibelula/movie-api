@@ -9,13 +9,13 @@ class Movie extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'description', 'release_date', 'genre'];
+    protected $fillable = ['title', 'description', 'release_date', 'genre_id'];
 
     protected $hidden = ['pivot'];
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'watch_later');
+        return $this->belongsToMany(User::class, 'movie_user')->withTimestamps();
     }
 
     // If you have a separate Genre model and table
