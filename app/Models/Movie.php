@@ -11,8 +11,16 @@ class Movie extends Model
 
     protected $fillable = ['title', 'description', 'release_date', 'genre'];
 
+    protected $hidden = ['pivot'];
+
     public function users()
     {
         return $this->belongsToMany(User::class, 'watch_later');
+    }
+
+    // If you have a separate Genre model and table
+    public function genre()
+    {
+        return $this->belongsTo(Genre::class);
     }
 }

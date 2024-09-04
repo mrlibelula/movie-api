@@ -16,8 +16,10 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->date('release_date');
-            $table->string('genre');
+            $table->string('genre');  // Store genre as a string
             $table->timestamps();
+
+            $table->unique(['title', 'release_date']);
         });
     }
 
