@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('title');
             $table->text('description');
             $table->date('release_date');
-            $table->foreignId('genre_id')->constrained()->onDelete('cascade');
+            $table->foreignId('genre_id')->constrained();
             $table->timestamps();
 
             $table->unique(['title', 'release_date']);

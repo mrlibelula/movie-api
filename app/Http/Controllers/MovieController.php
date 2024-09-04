@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 
 class MovieController extends Controller
 {
@@ -18,19 +19,34 @@ class MovieController extends Controller
 
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'release_date' => 'required|date',
-            'genre_id' => 'required|exists:genres,id',
-        ]);
+        try {
+            $validatedData = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'release_date' => 'required|date',
+                'genre_id' => 'required|exists:genres,id',
+            ]);
 
-        $movie = Movie::create($validatedData);
+            $movie = Movie::create($validatedData);
 
-        return response()->json([
-            'message' => "The movie \"{$movie->title}\" has been created.",
-            'movie' => $movie
-        ], 201);
+            return response()->json($movie, 201);
+        } catch (QueryException $e) {
+            // Check if it's a unique constraint violation
+            if ($e->getCode() === '23000') {
+                return response()->json([
+                    'message' => 'A movie with this title and release date already exists.',
+                    'errors' => ['title' => ['The combination of title and release date must be unique.']]
+                ], 422);
+            }
+
+            // Log other database errors
+            Log::error('Database error: ' . $e->getMessage());
+            return response()->json(['message' => 'An error occurred while saving the movie.'], 500);
+        } catch (\Exception $e) {
+            // Log any other unexpected errors
+            Log::error('Unexpected error: ' . $e->getMessage());
+            return response()->json(['message' => 'An unexpected error occurred.'], 500);
+        }
     }
 
     public function show($id)
