@@ -73,16 +73,104 @@ The API will be available at `http://localhost:8000`.
 
 ## API Endpoints
 
-- `POST /api/register` - Register a new user
-- `POST /api/login` - User login
-- `GET /api/movies` - List all movies
-- `POST /api/movies` - Create a new movie
-- `GET /api/movies/{id}` - Get a specific movie
-- `PUT /api/movies/{id}` - Update a movie
-- `DELETE /api/movies/{id}` - Delete a movie
-- `POST /api/watchlater/{movie_id}` - Add a movie to watch later list
-- `DELETE /api/watchlater/{movie_id}` - Remove a movie from watch later list
-- `GET /api/watchlater` - Get user's watch later list
+### Authentication
+
+#### Register a new user
+- **POST** `/api/register`
+- **Body**: 
+  ```json
+  {
+    "name": "string",
+    "email": "string",
+    "password": "string",
+    "password_confirmation": "string"
+  }
+  ```
+- **Response**: User details and token
+
+#### User login
+- **POST** `/api/login`
+- **Body**: 
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- **Response**: User details and token
+
+### Movies
+
+#### List all movies
+- **GET** `/api/movies`
+- **Response**: List of all movies
+
+#### Create a new movie
+- **POST** `/api/movies`
+- **Body**: 
+  ```json
+  {
+    "title": "string",
+    "description": "string",
+    "release_date": "YYYY-MM-DD",
+    "genre_id": "integer"
+  }
+  ```
+- **Response**: Created movie details
+
+#### Get a specific movie
+- **GET** `/api/movies/{id}`
+- **Response**: Movie details
+
+#### Update a movie
+- **PUT** `/api/movies/{id}`
+- **Body**: 
+  ```json
+  {
+    "title": "string",
+    "description": "string",
+    "release_date": "YYYY-MM-DD",
+    "genre_id": "integer"
+  }
+  ```
+- **Response**: Updated movie details
+
+#### Delete a movie
+- **DELETE** `/api/movies/{id}`
+- **Response**: Success message
+
+### Watch Later
+
+#### Add a movie to watch later list
+- **POST** `/api/watchlater/{movie_id}`
+- **Response**: Success message
+
+#### Remove a movie from watch later list
+- **DELETE** `/api/watchlater/{movie_id}`
+- **Response**: Success message
+
+#### Get user's watch later list
+- **GET** `/api/watchlater`
+- **Response**: List of movies in the user's watch later list
+
+### Authentication Note
+
+All endpoints except `/api/register` and `/api/login` require authentication. Include the bearer token in the Authorization header:
+
+```
+Authorization: Bearer {token}
+```
+
+### Error Responses
+
+All endpoints may return the following error responses:
+
+- `400 Bad Request`: Invalid input data
+- `401 Unauthorized`: Invalid or missing authentication token
+- `403 Forbidden`: User doesn't have permission to perform the action
+- `404 Not Found`: Requested resource not found
+- `422 Unprocessable Entity`: Validation errors
+- `500 Internal Server Error`: Server-side error
 
 ## Testing
 
