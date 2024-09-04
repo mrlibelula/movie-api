@@ -24,7 +24,7 @@ class MovieController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'release_date' => 'required|date',
-                'genre_id' => 'required|exists:genres,id',
+                'genre_id' => 'required|numeric',
             ]);
 
             $movie = Movie::create($validatedData);
