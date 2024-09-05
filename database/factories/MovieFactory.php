@@ -24,7 +24,7 @@ class MovieFactory extends Factory
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph,
             'release_date' => $this->faker->date(),
-            'genre_id' => Genre::factory(),
+            'genre_id' => Genre::factory()->create()->id,
         ];
     }
 }
