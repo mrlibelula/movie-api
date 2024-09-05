@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 
 class Handler extends ExceptionHandler
 {
@@ -33,14 +34,18 @@ class Handler extends ExceptionHandler
      */
     public function register()
     {
-        $this->renderable(function (Throwable $e, Request $request) {
-            if ($request->is('api/*') || $request->wantsJson()) {
+        $this->reportable(function (Throwable $e) {
+            if ($e instanceof ValidationException) {
+                return false; // Don't report validation exceptions
+            }
+        });
+
+        $this->renderable(function (ValidationException $e, $request) {
+            if ($request->expectsJson()) {
                 return response()->json([
-                    'message' => 'An error occurred',
-                    'error' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ], 500);
+                    'message' => 'The given data was invalid.',
+                    'errors' => $e->errors(),
+                ], 422);
             }
         });
     }

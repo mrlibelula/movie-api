@@ -119,3 +119,66 @@ test('user can update a movie from database', function () {
     // Add this assertion to check the database
     $this->assertDatabaseHas('movies', $updatedData);
 });
+
+// validation tests
+test('adding a movie with invalid data', function () {
+    $actingAs = Sanctum::actingAs($this->user);
+
+    $invalidData = [
+        'title' => '',
+        'description' => '',
+        'release_date' => 'not-a-date',
+        'genre_id' => 'not-a-number',
+    ];
+
+    $response = $this->postJson('/api/movies', $invalidData);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['title', 'description', 'release_date', 'genre_id'])
+        ->assertJson([
+            'message' => 'The given data was invalid.',
+            'errors' => [
+                'title' => ['The title field is required.'],
+                'description' => ['The description field is required.'],
+                'release_date' => ['The release date field must be a valid date.'],
+                'genre_id' => ['The selected genre id is invalid.']
+            ]
+        ]);
+
+    $this->assertDatabaseMissing('movies', $invalidData);
+});
+
+test('updating a movie with invalid data', function () {
+    $actingAs = Sanctum::actingAs($this->user);
+
+    // Create a valid movie first
+    $movie = Movie::factory()->create();
+
+    $invalidData = [
+        'title' => '',
+        'description' => '',
+        'release_date' => 'not-a-date',
+        'genre_id' => 'not-a-number',
+    ];
+
+    $response = $this->putJson("/api/movies/{$movie->id}", $invalidData);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['title', 'description', 'release_date'])
+        ->assertJson([
+            'errors' => [
+                'title' => ['The title field must be a string.'],
+                'description' => ['The description field must be a string.'],
+                'release_date' => ['The release date field must be a valid date.']
+            ]
+        ]);
+
+    // Assert that the movie in the database still has its original values
+    $this->assertDatabaseHas('movies', [
+        'id' => $movie->id,
+        'title' => $movie->title,
+        'description' => $movie->description,
+        'release_date' => $movie->release_date,
+        'genre_id' => $movie->genre_id,
+    ]);
+});

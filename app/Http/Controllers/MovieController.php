@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class MovieController extends Controller
 {
@@ -24,28 +25,31 @@ class MovieController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
                 'release_date' => 'required|date',
-                'genre_id' => 'required|numeric',
+                'genre_id' => 'required|exists:genres,id',
             ]);
 
             $movie = Movie::create($validatedData);
 
             return response()->json($movie, 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (QueryException $e) {
-            // Check if it's a unique constraint violation
             if ($e->getCode() === '23000') {
                 return response()->json([
                     'message' => 'A movie with this title and release date already exists.',
                     'errors' => ['title' => ['The combination of title and release date must be unique.']]
                 ], 422);
             }
-
-            // Log other database errors
-            Log::error('Database error: ' . $e->getMessage());
-            return response()->json(['message' => 'An error occurred while saving the movie.'], 500);
+            throw $e;
         } catch (\Exception $e) {
-            // Log any other unexpected errors
-            Log::error('Unexpected error: ' . $e->getMessage());
-            return response()->json(['message' => 'An unexpected error occurred.'], 500);
+            \Log::error('Error creating movie: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An error occurred while creating the movie',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
