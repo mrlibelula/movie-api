@@ -65,3 +65,57 @@ test('user can remove a movie from database', function () {
 
     $this->assertDatabaseCount('movies', 2);
 });
+
+test('user can read a movie from database', function () {
+    Sanctum::actingAs($this->user);
+    
+    $movie = $this->movies->first();
+
+    $response = $this->getJson("/api/movies/{$movie->id}");
+
+    $response->assertStatus(200)
+        ->assertJsonStructure([
+            'id',
+            'title',
+            'description',
+            'release_date',
+            'genre_id',
+            'created_at',
+            'updated_at',
+        ])
+        ->assertJson([
+            'id' => $movie->id,
+            'title' => $movie->title,
+            'description' => $movie->description,
+            'release_date' => $movie->release_date,
+            'genre_id' => $movie->genre_id,
+        ]);
+});
+
+test('user can update a movie from database', function () {
+    $actingAs = Sanctum::actingAs($this->user);
+    
+    $movie = $this->movies->first();
+    $updatedData = [
+        'title' => 'Updated Movie Title',
+        'description' => 'Updated movie description',
+        'release_date' => '2023-01-01',
+        'genre_id' => $movie->genre_id,
+    ];
+
+    $response = $this->putJson("/api/movies/{$movie->id}", $updatedData);
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'movie' => [
+                'id' => $movie->id,
+                'title' => $updatedData['title'],
+                'description' => $updatedData['description'],
+                'release_date' => $updatedData['release_date'],
+                'genre_id' => $updatedData['genre_id'],
+            ]
+        ]);
+
+    // Add this assertion to check the database
+    $this->assertDatabaseHas('movies', $updatedData);
+});
