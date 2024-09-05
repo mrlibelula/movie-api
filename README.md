@@ -179,4 +179,31 @@ Run the test suite with:
 php artisan test
 ```
 
+## Live Demo
+
+You can access the live demo of this project using the following base URL and endpoints:
+
+Base URL: `https://libe.dev/demo/movie-api/v1/api`
+
+Endpoints:
+- `/register`
+- `/login`
+- `/movies`
+- `/movies/{id}`
+- `/logout`
+- `/movies/{movie}/watch-later`
+- `/watch-later`
+
+Example full URL: `https://libe.dev/demo/movie-api/v1/api/register`
+
+Please note that these endpoints are for demonstration purposes only. Refer to the API documentation for full details on request/response formats and authentication requirements.
+
+## Testing the API
+
+To interact with these endpoints, we recommend using Postman, a popular API development and testing tool. 
+
+You can download Postman here: [https://www.postman.com/downloads/](https://www.postman.com/downloads/)
+
+Postman allows you to easily send requests to the API endpoints and view the responses, making it an ideal tool for exploring and testing the functionality of this Movie API.
+
 [libe.dev](https://libe.dev)
