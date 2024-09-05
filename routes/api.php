@@ -12,7 +12,6 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 
 Route::middleware([EnsureValidToken::class, 'auth:sanctum'])->group(function () {
     Route::post('/movies', [MovieController::class, 'store']);
-    // Add other protected routes here
 });
 
 Route::middleware('auth:sanctum')->group(function () {

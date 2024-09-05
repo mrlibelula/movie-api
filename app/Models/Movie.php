@@ -18,7 +18,6 @@ class Movie extends Model
         return $this->belongsToMany(User::class, 'movie_user')->withTimestamps();
     }
 
-    // If you have a separate Genre model and table
     public function genre()
     {
         return $this->belongsTo(Genre::class);

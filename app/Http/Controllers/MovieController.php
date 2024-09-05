@@ -111,19 +111,33 @@ class MovieController extends Controller
 
     public function addToWatchLater(Movie $movie)
     {
-        $user = auth()->user();
-        
-        if ($user->watchLater()->where('movie_id', $movie->id)->exists()) {
-            return response()->json([
-                'message' => "The movie \"{$movie->title}\" is already in your watch later list."
-            ], 409);
-        }
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'error' => 'Unauthorized',
+                    'message' => 'User not authenticated.'
+                ], 401);
+            }
+            
+            if ($user->watchLater()->where('movie_id', $movie->id)->exists()) {
+                return response()->json([
+                    'message' => "The movie \"{$movie->title}\" is already in your watch later list."
+                ], 409);
+            }
 
-        $user->watchLater()->attach($movie->id);
-        
-        return response()->json([
-            'message' => "The movie \"{$movie->title}\" has been added to your watch later list."
-        ], 200);
+            $user->watchLater()->attach($movie->id);
+            
+            return response()->json([
+                'message' => "The movie \"{$movie->title}\" has been added to your watch later list."
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Server Error',
+                'message' => 'An error occurred while processing your request.'
+            ], 500);
+        }
     }
 
     public function removeFromWatchLater(Movie $movie)
