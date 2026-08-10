@@ -10,9 +10,9 @@ A Laravel-based RESTful API for managing movies and user watch lists.
 
 ## Requirements
 
-- PHP 8.1+
+- PHP 8.2+
 - Composer
-- Laravel 10.x
+- Laravel 11.x
 - SQLite 3
 
 ## Installation
@@ -67,9 +67,6 @@ php artisan serve
 ```
 
 You can now access the API at `http://localhost:8000`.
-
-
-The API will be available at `http://localhost:8000`.
 
 ## API Endpoints
 
@@ -142,15 +139,15 @@ The API will be available at `http://localhost:8000`.
 ### Watch Later
 
 #### Add a movie to watch later list
-- **POST** `/api/watchlater/{movie_id}`
-- **Response**: Success message
+- **POST** `/api/movies/{id}/watch-later`
+- **Response**: Success message (or `409` if the movie is already on the list)
 
 #### Remove a movie from watch later list
-- **DELETE** `/api/watchlater/{movie_id}`
-- **Response**: Success message
+- **DELETE** `/api/movies/{id}/watch-later`
+- **Response**: Success message (or `404` if the movie is not on the list)
 
 #### Get user's watch later list
-- **GET** `/api/watchlater`
+- **GET** `/api/watch-later`
 - **Response**: List of movies in the user's watch later list
 
 ### Authentication Note
@@ -183,18 +180,18 @@ php artisan test
 
 You can access the live demo of this project using the following base URL and endpoints:
 
-Base URL: `https://libe.dev/demo/movie-api/v1/api`
+Base URL: `https://libe.dev/demo/movie-api/api`
 
 Endpoints:
 - `/register`
 - `/login`
+- `/logout`
 - `/movies`
 - `/movies/{id}`
-- `/logout`
-- `/movies/{movie}/watch-later`
+- `/movies/{id}/watch-later`
 - `/watch-later`
 
-Example full URL: `https://libe.dev/demo/movie-api/v1/api/register`
+Example full URL: `https://libe.dev/demo/movie-api/api/register`
 
 Please note that these endpoints are for demonstration purposes only. Refer to the API documentation for full details on request/response formats and authentication requirements.
 
