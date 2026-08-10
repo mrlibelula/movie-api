@@ -14,6 +14,7 @@
 | API **login** brute-force protection | ✅ **Added** (5 attempts/min per email+IP) |
 | API **register** abuse protection | ✅ **Added** (3 attempts/min per IP) |
 | Password **reset** throttling | ✅ **Added** (3 attempts/min per IP) |
+| Credential-in-URL rejection | ✅ **Added** (login/register reject `email`/`password` in the query string → 422) |
 | Token/Sanctum authentication | ✅ Already present |
 | Password hashing | ✅ Already present |
 | CORS correctness for a public bearer-token API | ✅ **Fixed** |
@@ -77,6 +78,11 @@ Before this audit, the API relied on a few solid Laravel defaults but had **no r
 ### 3.9 Code-quality issues (LOW)
 - `POST /movies` was registered **three times** (`routes/api.php:14, 19, 28`) — redundant and shadowed.
 - `MovieController::update()` validated a non-existent `genre` string column instead of the real `genre_id` → silent no-op on updates.
+
+### 3.10 Credentials accepted in the URL query string (MEDIUM–HIGH)
+- `AuthController::login` / `AuthController::register` read inputs with `$request->all()` / `$request->only()`, which merge the **query string and the request body** into a single pool.
+- Consequence: credentials placed in the URL (e.g. the "Params" tab in Postman) were silently accepted. URLs are logged verbatim by web servers, reverse proxies, app gateways and stay in browser history — so `?email=...&password=...` is a genuine credential-leak risk.
+- **Impact:** credential leakage via logs/history; also encourages a bad client-side habit.
 
 ---
 
@@ -161,14 +167,34 @@ $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geoloca
 ```
 - Registered globally in `bootstrap/app.php` via `$middleware->append(...)`.
 
+### 4.9 Reject credentials in the URL — `app/Http/Controllers/AuthController.php`
+- A private guard runs **before validation** in both `login()` and `register()`. It inspects the query parameter bag (`$request->query->has(...)`) for credential fields and returns `422` if any are present:
+  ```php
+  private function rejectQueryCredentials(Request $request, array $fields)
+  {
+      $found = collect($fields)->filter(fn ($field) => $request->query->has($field));
+
+      if ($found->isNotEmpty()) {
+          return response()->json([
+              'message' => 'Credentials must be sent in the request body, not the URL query string.',
+              'errors' => $found->mapWithKeys(fn ($field) => [$field => ['Use the request body instead of the URL for this field.']]),
+          ], 422);
+      }
+
+      return null;
+  }
+  ```
+- Called with `['email', 'password']` from `login()` and `['name', 'email', 'password', 'password_confirmation']` from `register()`.
+- Because the guard rejects query-string credentials, the remaining `$request->all()` / `$request->only()` reads can only ever contain **body** input (JSON or `application/x-www-form-urlencoded`). The URL is no longer an accepted channel for secrets.
+
 ---
 
 ## 5. Endpoint-by-Endpoint Analysis
 
 | Endpoint | Auth | Throttle | Notes |
 |---|---|---|---|
-| `POST /api/register` | public | 3/min/IP | Added |
-| `POST /api/login` | public | 5/min/email+IP | Added (was unprotected) |
+| `POST /api/register` | public | 3/min/IP | Added; body-only credentials (422 if in URL) |
+| `POST /api/login` | public | 5/min/email+IP | Added (was unprotected); body-only credentials (422 if in URL) |
 | `POST /api/logout` | token | 30/min/user | Added |
 | `GET/POST/PUT/DELETE /api/movies*` | token | 30/min/user | Added |
 | `POST/DELETE /api/movies/{id}/watch-later` | token | 30/min/user | Added |
@@ -199,7 +225,15 @@ New tests live in `tests/Feature/SecurityRateLimitTest.php`:
 - Register throttling per IP (429 after 3).
 - Security headers present.
 
-Full suite: `vendor/bin/pest` → **35 passed, 197 assertions**.
+`tests/Feature/Auth/ApiCredentialsTest.php` proves the credential-in-URL guard:
+- Login with credentials in the URL query → **422**, no token issued.
+- Login with credentials in a **JSON** body → **200** + token (regression).
+- Login with credentials in an **x-www-form-urlencoded** body → **200** + token (regression).
+- Register with credentials in the URL query → **422**.
+
+Full suite: `vendor/bin/pest` → **39 passed, 209 assertions**.
+
+Style: `vendor/bin/pint --test` → clean (63 files; only PHP 8.4 deprecation notices from Pint's bundled deps, none from project code).
 
 ---
 
@@ -239,14 +273,23 @@ engineers. Structure it as follows and INCLUDE real code snippets:
    security response headers via a SecurityHeaders middleware, and fixing a validation
    bug (bogus 'genre' string renamed to the correct 'genre_id' foreign key).
 
-6. TESTING - Show the Pest tests that prove the throttles work (asserting 429), and
-   state that the full suite passes (35 tests / 197 assertions).
+6. NEVER PUT SECRETS IN THE URL - Explain WHY query-string credentials are dangerous:
+   URLs get logged verbatim by browsers, proxies, and servers. Show that AuthController
+   originally read via $request->only()/$request->all() (which also swallowed query
+   params), so a Postman "Params" tab worked but leaked the password. Show the fix: a
+   rejectQueryCredentials() guard returning 422, and note that credentials must now be
+   sent in the request body (JSON or x-www-form-urlencoded) - never the URL.
 
-7. HONESTY SECTION - List the remaining known gaps you consciously deferred (movie
+7. TESTING - Show the Pest tests that prove the throttles work (asserting 429), plus the
+   ApiCredentialsTest proving URL credentials are rejected (422) while JSON and
+   form-encoded bodies still return a token. State that the full suite passes (39 tests /
+   209 assertions).
+
+8. HONESTY SECTION - List the remaining known gaps you consciously deferred (movie
    write-authorization/IDOR, email verification on API routes, password policy, token
    expiry). This honesty strengthens the post.
 
-8. CONCLUSION - Practical takeaways for other devs.
+9. CONCLUSION - Practical takeaways for other devs.
 
 Tone: genuine, technical, no overclaiming. Use real file paths. Do NOT invent security
 features that are not in the codebase. Keep the post skimmable with headings and code

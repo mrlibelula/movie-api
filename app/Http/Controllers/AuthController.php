@@ -12,6 +12,10 @@ class AuthController extends Controller
 {
     public function register(Request $request)
     {
+        if ($response = $this->rejectQueryCredentials($request, ['name', 'email', 'password', 'password_confirmation'])) {
+            return $response;
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -38,6 +42,10 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        if ($response = $this->rejectQueryCredentials($request, ['email', 'password'])) {
+            return $response;
+        }
+
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required',
@@ -65,5 +73,19 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    private function rejectQueryCredentials(Request $request, array $fields)
+    {
+        $found = collect($fields)->filter(fn ($field) => $request->query->has($field));
+
+        if ($found->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Credentials must be sent in the request body, not the URL query string.',
+                'errors' => $found->mapWithKeys(fn ($field) => [$field => ['Use the request body instead of the URL for this field.']]),
+            ], 422);
+        }
+
+        return null;
     }
 }
