@@ -47,7 +47,7 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json(['message' => 'Invalid login details'], 401);
         }
 
@@ -63,6 +63,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logged out successfully']);
     }
 }

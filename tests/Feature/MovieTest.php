@@ -1,9 +1,8 @@
 <?php
-    
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Movie;
+
 use App\Models\Genre;
+use App\Models\Movie;
+use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -14,7 +13,7 @@ beforeEach(function () {
 
 test('user can add a movie to database', function () {
     Sanctum::actingAs($this->user);
-    
+
     $genre = Genre::first();
     $movieData = [
         'title' => 'Test Movie',
@@ -46,7 +45,7 @@ test('user can add a movie to database', function () {
 
 test('user can remove a movie from database', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
 
     $response = $this->deleteJson("/api/movies/{$movie->id}");
@@ -55,8 +54,8 @@ test('user can remove a movie from database', function () {
         ->assertJson([
             'message' => 'Movie successfully deleted',
             'data' => [
-                'deleted' => true
-            ]
+                'deleted' => true,
+            ],
         ]);
 
     $this->assertDatabaseMissing('movies', [
@@ -68,7 +67,7 @@ test('user can remove a movie from database', function () {
 
 test('user can read a movie from database', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
 
     $response = $this->getJson("/api/movies/{$movie->id}");
@@ -94,7 +93,7 @@ test('user can read a movie from database', function () {
 
 test('user can update a movie from database', function () {
     $actingAs = Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
     $updatedData = [
         'title' => 'Updated Movie Title',
@@ -113,7 +112,7 @@ test('user can update a movie from database', function () {
                 'description' => $updatedData['description'],
                 'release_date' => $updatedData['release_date'],
                 'genre_id' => $updatedData['genre_id'],
-            ]
+            ],
         ]);
 
     // Add this assertion to check the database
@@ -141,8 +140,8 @@ test('adding a movie with invalid data', function () {
                 'title' => ['The title field is required.'],
                 'description' => ['The description field is required.'],
                 'release_date' => ['The release date field must be a valid date.'],
-                'genre_id' => ['The selected genre id is invalid.']
-            ]
+                'genre_id' => ['The selected genre id is invalid.'],
+            ],
         ]);
 
     $this->assertDatabaseMissing('movies', $invalidData);
@@ -169,8 +168,8 @@ test('updating a movie with invalid data', function () {
             'errors' => [
                 'title' => ['The title field must be a string.'],
                 'description' => ['The description field must be a string.'],
-                'release_date' => ['The release date field must be a valid date.']
-            ]
+                'release_date' => ['The release date field must be a valid date.'],
+            ],
         ]);
 
     // Assert that the movie in the database still has its original values

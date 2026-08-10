@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\User;
-use App\Models\Movie;
 use App\Models\Genre;
+use App\Models\Movie;
+use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
 beforeEach(function () {
@@ -13,14 +13,14 @@ beforeEach(function () {
 
 test('user can add a movie to watch later list', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
 
     $response = $this->postJson("/api/movies/{$movie->id}/watch-later");
 
     $response->assertStatus(200)
         ->assertJson([
-            'message' => "The movie \"{$movie->title}\" has been added to your watch later list."
+            'message' => "The movie \"{$movie->title}\" has been added to your watch later list.",
         ]);
 
     $this->assertDatabaseHas('movie_user', [
@@ -31,7 +31,7 @@ test('user can add a movie to watch later list', function () {
 
 test('user cannot add the same movie to watch later list twice', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
     $this->user->watchLater()->attach($movie->id);
 
@@ -39,13 +39,13 @@ test('user cannot add the same movie to watch later list twice', function () {
 
     $response->assertStatus(409)
         ->assertJson([
-            'message' => "The movie \"{$movie->title}\" is already in your watch later list."
+            'message' => "The movie \"{$movie->title}\" is already in your watch later list.",
         ]);
 });
 
 test('user can remove a movie from watch later list', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
     $this->user->watchLater()->attach($movie->id);
 
@@ -53,7 +53,7 @@ test('user can remove a movie from watch later list', function () {
 
     $response->assertStatus(200)
         ->assertJson([
-            'message' => "The movie \"{$movie->title}\" has been removed from your watch later list."
+            'message' => "The movie \"{$movie->title}\" has been removed from your watch later list.",
         ]);
 
     $this->assertDatabaseMissing('movie_user', [
@@ -64,23 +64,23 @@ test('user can remove a movie from watch later list', function () {
 
 test('user cannot remove a movie that is not in their watch later list', function () {
     Sanctum::actingAs($this->user);
-    
+
     $movie = $this->movies->first();
 
     $response = $this->deleteJson("/api/movies/{$movie->id}/watch-later");
 
     $response->assertStatus(404)
         ->assertJson([
-            'message' => "The movie \"{$movie->title}\" is not in your watch later list."
+            'message' => "The movie \"{$movie->title}\" is not in your watch later list.",
         ]);
 });
 
 test('user can retrieve their watch later list', function () {
     Sanctum::actingAs($this->user);
-    
+
     $this->user->watchLater()->attach($this->movies->pluck('id'));
 
-    $response = $this->getJson("/api/watch-later");
+    $response = $this->getJson('/api/watch-later');
 
     $response->assertStatus(200)
         ->assertJsonStructure([
@@ -113,5 +113,5 @@ test('unauthenticated user cannot access watch later endpoints', function () {
 
     $this->postJson("/api/movies/{$movie->id}/watch-later")->assertStatus(401);
     $this->deleteJson("/api/movies/{$movie->id}/watch-later")->assertStatus(401);
-    $this->getJson("/api/watch-later")->assertStatus(401);
+    $this->getJson('/api/watch-later')->assertStatus(401);
 });

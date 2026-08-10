@@ -15,10 +15,10 @@ class EnsureValidToken
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->bearerToken()) {
+        if (! $request->bearerToken()) {
             return response()->json([
                 'message' => 'Unauthorized',
-                'error' => 'No token provided'
+                'error' => 'No token provided',
             ], 401);
         }
 

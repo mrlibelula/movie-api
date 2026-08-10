@@ -31,7 +31,7 @@ class GenreSeeder extends Seeder
             'TV Movie',
             'Thriller',
             'War',
-            'Western'
+            'Western',
         ];
 
         foreach ($genres as $genre) {
